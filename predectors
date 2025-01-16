@@ -1,0 +1,95 @@
+1. Anonymous Network Detection
+Purpose: Detects usage of anonymous networks like VPNs, proxies, or Tor that may be masking malicious activities.
+Data Used: IP address and network metadata to determine the presence of anonymization technologies.
+Calculation Methods: Compares IP addresses against known anonymous network databases.
+Scoring Mechanisms:
+Medium: Assigns 50 points for moderate risks (e.g., less-known proxies).
+High/True: Assigns 75 points for clear detection of Tor nodes or high-risk VPNs.
+Interpretations: A high score indicates that the user may be attempting to conceal their identity or location, suggesting potential malicious activity.
+Implementation: Enabled by default in PingOne Protect and doesn’t require additional setup.
+Customization: Allow lists can be configured for known legitimate anonymous networks.
+Additional Notes: Frequent detections should prompt a review of the organization's network policies.
+2. Geovelocity Anomaly
+Purpose: Identifies impossible travel scenarios based on login locations and time differences.
+Data Used: Geographic location from IP address and time of login events.
+Calculation Methods: Computes the distance between two locations and the time elapsed between logins. If travel is physically impossible, risk is flagged.
+Scoring Mechanisms:
+Medium: Assigns 50 points for marginally feasible travel scenarios.
+High/True: Assigns 75 points for clearly impossible travel scenarios.
+Interpretations: High scores suggest potential account compromise.
+Implementation: Integrated directly into PingOne Protect; no additional setup required.
+Customization: Radius and distance parameters can be fine-tuned based on typical user behavior.
+Additional Notes: Works best when combined with User Location Anomaly to analyze location patterns.
+3. IP Reputation
+Purpose: Evaluates risk based on the reputation of the IP address.
+Data Used: Historical data of the IP’s involvement in malicious activities (e.g., DDoS, spam).
+Calculation Methods: Cross-references the IP with threat intelligence feeds and assigns a risk score based on its history.
+Scoring Mechanisms:
+Medium: Assigns 25 points for moderately suspicious IPs.
+High/True: Assigns 50 points for high-risk IPs known for malicious behavior.
+Interpretations: Higher scores indicate a higher likelihood of fraudulent activity originating from the IP.
+Implementation: Automatically enabled in PingOne Protect.
+Customization: Trusted IP lists can exclude known legitimate IPs.
+Additional Notes: Ensures known malicious sources are blocked preemptively.
+4. IP Velocity
+Purpose: Detects a high number of IPs associated with a single user.
+Data Used: Tracks unique IP addresses used for login attempts within a timeframe.
+Calculation Methods: Counts the number of unique IPs and compares it to learned behavior for that user.
+Scoring Mechanisms:
+Medium: Assigns 25 points for moderate deviations.
+High/True: Assigns 50 points for significant deviations.
+Interpretations: Higher scores suggest shared credentials or possible account compromise.
+Implementation: Pre-integrated into PingOne Protect.
+Customization: None currently available.
+Additional Notes: Thresholds dynamically adapt based on typical user behavior.
+5. New Device
+Purpose: Flags logins from devices not previously associated with the user.
+Data Used: Device fingerprinting, including cookies, user-agent, and device ID.
+Calculation Methods: Compares the device ID with historical data for the user.
+Scoring Mechanisms:
+Medium: N/A (not configured in the current policy).
+High/True: Assigns 50 points for unrecognized devices.
+Interpretations: High scores indicate potential unauthorized access attempts.
+Implementation: Requires PingOne Signals SDK for device identification.
+Customization: Fallback values can be configured for cases with insufficient data.
+Additional Notes: Frequent new devices may indicate an account takeover attempt.
+6. User Location Anomaly
+Purpose: Detects deviations in login locations from a user's typical patterns.
+Data Used: Historical and current geographic locations of logins.
+Calculation Methods: Compares the current location with a radius of historical login locations.
+Scoring Mechanisms:
+Medium: Assigns 25 points for marginal deviations.
+High/True: Assigns 50 points for significant deviations.
+Interpretations: High scores suggest potential fraud or unauthorized access.
+Implementation: Enabled by default in PingOne Protect.
+Customization: Radius for determining "normal" locations can be adjusted.
+Additional Notes: Works well alongside Geovelocity Anomaly for location-based analysis.
+7. User Velocity
+Purpose: Flags a high number of unique users logging in from a single IP address.
+Data Used: Tracks the number of distinct users authenticating from the same IP.
+Calculation Methods: Counts the number of unique users per IP and compares to thresholds.
+Scoring Mechanisms:
+Medium: Assigns 25 points for moderate anomalies.
+High/True: Assigns 50 points for significant anomalies.
+Interpretations: High scores may indicate credential stuffing or shared accounts.
+Implementation: Pre-configured within PingOne Protect.
+Customization: None currently available.
+Additional Notes: Monitoring helps detect coordinated attacks.
+8. User-Based Risk Behavior
+Purpose: Identifies anomalies in user behavior compared to their historical actions.
+Data Used: Device type, OS, browser, location, and time of access.
+Calculation Methods: Uses machine learning to establish a baseline of user behavior and detect deviations.
+Scoring Mechanisms:
+Medium: Assigns 25 points for slight deviations.
+High/True: Assigns 50 points for significant deviations.
+Interpretations: High scores suggest potential account compromise.
+Implementation: Pre-integrated; no additional setup required.
+Customization: None currently available.
+Additional Notes: Regular updates improve the accuracy of the model.
+Impact of Medium and High/True Scores on Risk Evaluation and Thresholds
+Medium Scores (50 and above): Contribute moderately to the aggregated risk score. These indicate potential anomalies but may not be critical enough to block access unless combined with other predictors.
+High/True Scores (75 and above): Have a significant impact on the aggregated risk score. If multiple predictors reach this level, the overall risk score is likely to exceed the threshold for High risk.
+Overall Thresholds:
+Medium Threshold: Configured at 50, meaning a cumulative score of 50 or more triggers a Medium risk classification.
+High Threshold: Configured at 75, meaning a cumulative score of 75 or more triggers a High risk classification.
+These thresholds ensure that risk evaluations are aligned with your security policies and can be fine-tuned based on your monitoring results.
