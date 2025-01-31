@@ -1,0 +1,51 @@
+@startuml
+actor LenderUser
+participant TSPApplication
+participant PingFederate
+participant ConsentApplication
+participant DatastoreConsentAPI
+participant TSPDatabase
+
+== Lender User Login ==
+LenderUser -> TSPApplication: Logs in with TSP ID and Password
+TSPApplication -> PingFederate: Redirects to PingFederate for authentication
+
+== PingFederate Authentication ==
+PingFederate -> PingFederate: Authenticates Lender User
+PingFederate -> TSPDatabase: Check lender-TSP relationship
+alt Relationship Exists
+    PingFederate -> ConsentApplication: Redirects with REF
+else Relationship Does Not Exist
+    PingFederate -> LenderUser: Redirects to error message page
+end
+
+== Retrieve User Details ==
+ConsentApplication -> PingFederate: Attribute Pickup (REF)
+PingFederate --> ConsentApplication: Returns User ID and attributes
+
+== Relationship Validation in TSP Database ==
+ConsentApplication -> TSPDatabase: Validate lender-TSP relationship
+alt Relationship Exists
+    ConsentApplication -> DatastoreConsentAPI: Read Consent
+    alt Consent Exists
+        ConsentApplication -> PingFederate: Attribute Dropoff
+        PingFederate --> ConsentApplication: Returns new REF
+        ConsentApplication -> LenderUser: Redirects back to TSPApplication
+    else Consent Does Not Exist
+        ConsentApplication -> PreconfiguredFile: Fetch System IDs
+        PreconfiguredFile --> ConsentApplication: Returns system IDs
+        LenderUser -> ConsentApplication: Views consent text, selects system IDs, submits response
+        alt User Agrees
+            ConsentApplication -> DatastoreConsentAPI: Create Consent
+            DatastoreConsentAPI --> ConsentApplication: Success
+            ConsentApplication -> PingFederate: Attribute Dropoff
+            PingFederate --> ConsentApplication: Returns new REF
+            ConsentApplication -> LenderUser: Redirects back to TSPApplication
+        else User Denies
+            ConsentApplication -> ConsentApplication: Display Deny Message Page
+        end
+    end
+else Relationship Does Not Exist
+    ConsentApplication -> LenderUser: Redirects to error message page
+end
+@enduml
