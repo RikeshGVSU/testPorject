@@ -1,51 +1,64 @@
 @startuml
-actor LenderUser
-participant TSPApplication
-participant PingFederate
-participant ConsentApplication
-participant DatastoreConsentAPI
-participant TSPDatabase
+skinparam participant {
+    BackgroundColor<<LenderUser>> LightBlue
+    BackgroundColor<<TSPApplication>> LightGreen
+    BackgroundColor<<PingFederate>> LightYellow
+    BackgroundColor<<ConsentApplication>> LightPink
+    BackgroundColor<<DatastoreConsentAPI>> LightCyan
+    BackgroundColor<<CIAM_API>> LightGray
+    BackgroundColor<<PostgresDatabase>> Beige
+    BorderColor Black
+    FontColor Black
+}
+
+actor LenderUser <<LenderUser>>
+participant TSPApplication <<TSPApplication>>
+participant PingFederate <<PingFederate>>
+participant ConsentApplication <<ConsentApplication>>
+participant DatastoreConsentAPI <<DatastoreConsentAPI>>
+participant CIAM_API <<CIAM_API>>
+participant PostgresDatabase <<PostgresDatabase>>
 
 == Lender User Login ==
-LenderUser -> TSPApplication: Logs in with TSP ID and Password
-TSPApplication -> PingFederate: Redirects to PingFederate for authentication
+LenderUser -> TSPApplication: Logs in with TSP ID and Password (POST)
+TSPApplication -> PingFederate: Redirects to PingFederate for authentication (Redirect)
+PingFederate -> PingFederate: Authentication handled by PingFederate
+PingFederate -> PostgresDatabase: Check Lender-TSP relationship (GET)
+PostgresDatabase --> PingFederate: PingFed query response
 
-== PingFederate Authentication ==
-PingFederate -> PingFederate: Authenticates Lender User
-PingFederate -> TSPDatabase: Check lender-TSP relationship
-alt Relationship Exists
-    PingFederate -> ConsentApplication: Redirects with REF
-else Relationship Does Not Exist
-    PingFederate -> LenderUser: Redirects to error message page
+alt [Relationship Exists]
+    PingFederate -> ConsentApplication: Redirects with REF (Redirect)
+else [Relationship Does Not Exist]
+    PingFederate -> TSPApplication: Sends error response (Redirect)
+    TSPApplication -> LenderUser: Displays error message
 end
 
 == Retrieve User Details ==
-ConsentApplication -> PingFederate: Attribute Pickup (REF)
-PingFederate --> ConsentApplication: Returns User ID and attributes
+ConsentApplication -> PingFederate: Attribute Pickup (REF) (GET with REF)
+PingFederate --> ConsentApplication: Returns User ID and attributes (Response)
+ConsentApplication -> CIAM_API: Get SystemIDs (GET)
+CIAM_API --> ConsentApplication: Response with SystemIDs (Response)
+ConsentApplication -> DatastoreConsentAPI: Read Consent (GET)
+DatastoreConsentAPI --> ConsentApplication: Read Consent Response (Response)
 
-== Relationship Validation in TSP Database ==
-ConsentApplication -> TSPDatabase: Validate lender-TSP relationship
-alt Relationship Exists
-    ConsentApplication -> DatastoreConsentAPI: Read Consent
-    alt Consent Exists
-        ConsentApplication -> PingFederate: Attribute Dropoff
-        PingFederate --> ConsentApplication: Returns new REF
-        ConsentApplication -> LenderUser: Redirects back to TSPApplication
-    else Consent Does Not Exist
-        ConsentApplication -> PreconfiguredFile: Fetch System IDs
-        PreconfiguredFile --> ConsentApplication: Returns system IDs
-        LenderUser -> ConsentApplication: Views consent text, selects system IDs, submits response
-        alt User Agrees
-            ConsentApplication -> DatastoreConsentAPI: Create Consent
-            DatastoreConsentAPI --> ConsentApplication: Success
-            ConsentApplication -> PingFederate: Attribute Dropoff
-            PingFederate --> ConsentApplication: Returns new REF
-            ConsentApplication -> LenderUser: Redirects back to TSPApplication
-        else User Denies
-            ConsentApplication -> ConsentApplication: Display Deny Message Page
-        end
+alt [Consent Exists]
+    ConsentApplication -> PingFederate: Attribute Dropoff (POST with payload)
+    PingFederate --> ConsentApplication: Returns new REF (Response)
+    ConsentApplication -> TSPApplication: Redirects back with REF (Redirect)
+else [Consent Does Not Exist]
+    ConsentApplication -> LenderUser: UI page is displayed to the user
+    LenderUser -> ConsentApplication: Views consent text, selects system IDs, submits response (POST)
+
+    == Save Consent ==
+    alt [User Agrees]
+        ConsentApplication -> DatastoreConsentAPI: Create Consent (POST with payload)
+        DatastoreConsentAPI --> ConsentApplication: Success (Response)
+        ConsentApplication -> PingFederate: Attribute Dropoff (POST with payload)
+        PingFederate --> ConsentApplication: Returns new REF (Response)
+        ConsentApplication -> TSPApplication: Redirects back with REF (Redirect)
+    else [User Denies]
+        ConsentApplication -> ConsentApplication: Display Deny Message Page
+        ConsentApplication -> TSPApplication: Redirects back with error (Redirect)
     end
-else Relationship Does Not Exist
-    ConsentApplication -> LenderUser: Redirects to error message page
 end
 @enduml
