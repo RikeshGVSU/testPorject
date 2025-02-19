@@ -1,43 +1,157 @@
-<h1>ConsentApplication - Requirements for Lender Consent Delegation</h1>
 
-<hr>
+<h1>Device Profiling in PingAccess Risk Policy</h1>
 
-<h2>1. UI Updates for System ID Delegation</h2>
+<h2>Overview</h2>
+<p>Device profiling is a crucial aspect of PingAccess risk policies, enabling the system to gather detailed information about the devices accessing your applications. This enhances the accuracy of risk evaluations and helps identify anomalies or potential security threats.</p>
+
+<h2>Enabling Device Profiling in PingAccess Risk Policies</h2>
+
+<h3>Step 1: Access the PingAccess Administrative Console</h3>
 <ul>
-    <li><strong>Add verbiage in the UI</strong> informing lenders that when they consent to a <strong>system ID</strong>, the consent applies to <strong>all of the TSP’s products (current and future)</strong>.</li>
-    <li><strong>Ensure visibility</strong> of this information at the <strong>time of consent selection</strong> to avoid confusion.</li>
-    <li><strong>Legal review required</strong> to validate the UI messaging.</li>
+    <li>Navigate to the console and select <strong>Access</strong> > <strong>Risk Policies</strong>.</li>
 </ul>
 
-<h2>2. UI Updates for User ID Delegation</h2>
+<h3>Step 2: Add or Edit a Risk Policy</h3>
 <ul>
-    <li>When a <strong>lender delegates a user ID</strong>, the ConsentApplication UI should <strong>display a list of TSP software products</strong> available for delegation.</li>
-    <li>The lender should be able to <strong>select multiple TSP products</strong> to grant access.</li>
-    <li><strong>Ensure UI clarity</strong> on the fact that previously delegated user IDs may already have access to certain APIs.</li>
+    <li>To create a new policy, click <strong>+Add Risk Policy</strong>.</li>
+    <li>To modify an existing policy, click the <strong>Expand</strong> icon next to the desired policy and then click the <strong>Pencil</strong> icon on the <strong>Properties</strong> tab.</li>
 </ul>
 
-<h2>3. System ID Consent Automation</h2>
+<h3>Step 3: Configure Device Profiling</h3>
 <ul>
-    <li>When a lender <strong>consents to a system ID</strong>, ensure it is <strong>automatically delegated</strong> to <strong>all relevant TSP products</strong> without requiring separate consent actions.</li>
-    <li>Update API logic to handle <strong>automatic system ID delegation</strong> when a lender provides consent.</li>
+    <li>In the <strong>Device Profiling Method</strong> field, select one of the following options:</li>
+    <ul>
+        <li><strong>OFF</strong>: Disables device profiling.</li>
+        <li><strong>Captured by PingAccess</strong>: PingAccess collects device profiles during the access request.</li>
+        <li><strong>Captured by a Previous Adapter</strong>: Device profiling is handled earlier in the authentication flow by another component.</li>
+    </ul>
 </ul>
 
-<h2>4. Handling API Overlaps Between TSPs</h2>
+<h3>Step 4: Save the Policy</h3>
 <ul>
-    <li>Ensure that when <strong>multiple TSPs share the same API roles</strong>, lenders <strong>do not need to provide duplicate consents</strong>.</li>
-    <li>Add logic in the ConsentApplication to <strong>check for existing API roles</strong> before requesting additional consent.</li>
+    <li>After configuring the desired settings, click <strong>Save</strong> to apply the changes.</li>
 </ul>
 
-<h2>5. Audit & Tracking</h2>
+<h2>Important Considerations</h2>
+
+<h3>Predictor Compatibility</h3>
+<p>If device profiling is not enabled, avoid including device-related predictors in your PingOne risk policy, as they rely on device data to function correctly. These predictors include:</p>
 <ul>
-    <li>Implement a <strong>tracking mechanism</strong> to log <strong>when a lender consents to a system ID or user ID</strong> and which TSP products were included.</li>
-    <li>Ensure <strong>logs capture delegation events</strong> for auditing and compliance purposes.</li>
+    <li>Anonymous Network Detection</li>
+    <li>Geovelocity Anomaly</li>
+    <li>IP Reputation</li>
+    <li>IP Velocity</li>
+    <li>New Device</li>
+    <li>User Location Anomaly</li>
+</ul>
+<p>Ensure that your risk policy configuration aligns with the device profiling settings to maintain accurate risk assessments.</p>
+
+<h3>Cookie Size Consideration</h3>
+<p>Enabling device profiling adds device information to the user's browser as cookies, typically around 8192 bytes in size. Before enabling this feature, increase the <code>pa.default.maxHttpHeaderSize</code> property in the <code>&lt;PA_HOME&gt;/conf/run.properties</code> file to accommodate the additional data.</p>
+
+<h2>Additional Resources</h2>
+<p>For more detailed information, refer to the <a href="https://docs.pingidentity.com/pingaccess/latest/pingaccess_user_interface_reference_guide/pa_risk_policies_overview.html">PingAccess Risk Policies Overview</a>.</p>
+
+
+<h1>Customizing the Device Profiling Loading Page in PingAccess</h1>
+
+<p>When device profiling is enabled in PingAccess, users may see a loading page while their device information is collected. This page can be customized or optimized to enhance the user experience.</p>
+
+<h2>Customizing the Loading Page</h2>
+
+<p>PingAccess allows modifications to user-facing pages, including the device profiling loading page. Follow these steps to customize it:</p>
+
+<ol>
+    <li>
+        <strong>Locate the Template File:</strong>
+        <ul>
+            <li>Go to the PingAccess installation directory, typically <code>&lt;PA_HOME&gt;</code>.</li>
+            <li>Navigate to <code>conf/templates</code>.</li>
+            <li>Look for the template file related to the device profiling loading page.</li>
+        </ul>
+    </li>
+    
+    <li>
+        <strong>Edit the Template:</strong>
+        <ul>
+            <li>Open the template file in a text editor.</li>
+            <li>Modify the HTML and Velocity Template Language (VTL) constructs.</li>
+            <li>Apply branding elements such as logos, colors, and customized messages.</li>
+        </ul>
+    </li>
+
+    <li>
+        <strong>Update Assets:</strong>
+        <ul>
+            <li>If using images or stylesheets, place them in the appropriate directories:</li>
+            <ul>
+                <li><strong>Images:</strong> <code>&lt;PA_HOME&gt;/conf/static/pa/assets/images</code></li>
+                <li><strong>Stylesheets:</strong> <code>&lt;PA_HOME&gt;/conf/static/pa/assets/css</code></li>
+            </ul>
+            <li>Ensure the template file references the correct asset paths.</li>
+        </ul>
+    </li>
+
+    <li>
+        <strong>Save and Test:</strong>
+        <ul>
+            <li>After making changes, save the file.</li>
+            <li>Test the device profiling process to verify your customizations.</li>
+        </ul>
+    </li>
+</ol>
+
+<p>For detailed guidance, refer to the <a href="https://docs.pingidentity.com/pingaccess/latest/configuring_and_customizing_pingaccess/pa_user_facing_page_customization_ref.html">PingAccess User-Facing Page Customization Reference</a>.</p>
+
+<h2>Suppressing the Loading Page</h2>
+
+<p>While customization is supported, removing the loading page entirely is not recommended, as it ensures complete device information collection. However, the following optimizations can reduce its impact:</p>
+
+<ul>
+    <li><strong>Asynchronous Data Collection:</strong> Implement device profiling earlier in the authentication flow (e.g., on the login page) to collect data in the background.</li>
+    <li><strong>Optimize Loading Time:</strong> Ensure the profiling script and associated resources are optimized to reduce the duration of the loading page.</li>
 </ul>
 
-<h2>6. Pending Legal Review</h2>
+<p>By effectively customizing or optimizing the loading page, you can enhance the user experience while maintaining security and risk assessment accuracy.</p>
+
+
+
+<h1>Using Signals SDK for PingAccess Risk Policy</h1>
+
+<p>Yes, you can utilize the <strong>PingOne Signals (Protect) SDK</strong> to enhance device profiling within PingAccess risk policies. This integration allows PingAccess to collect detailed device information, which is then used by PingOne Protect to perform comprehensive risk evaluations.</p>
+
+<h2>Implementing the Signals SDK with PingAccess</h2>
+
+<h3>1. Configure Device Profiling in PingAccess</h3>
 <ul>
-    <li><strong>Legal team</strong> must <strong>review and approve the UI messaging</strong> related to consent delegation.</li>
-    <li>Finalize whether <strong>explicit consent</strong> is required if a lender already has access to an API via another TSP.</li>
+    <li>Access the <strong>PingAccess administrative console</strong>.</li>
+    <li>Navigate to <strong>Access > Risk Policies</strong>.</li>
+    <li>Add a new risk policy or edit an existing one.</li>
+    <li>In the <strong>Device Profiling Method</strong> field, select <strong>Captured by Frontend Application</strong>.</li>
 </ul>
 
-<hr>
+<h3>2. Integrate the Signals SDK into Your Application</h3>
+<ul>
+    <li>Incorporate the <strong>Signals SDK</strong> into your application's frontend pages.</li>
+    <li>The SDK will collect device-related data and store it in cookies.</li>
+    <li>Ensure these cookies are properly configured to be accessible by PingAccess.</li>
+</ul>
+
+<h3>3. Adjust PingAccess Settings</h3>
+<ul>
+    <li>In the risk policy configuration, set the <strong>Device Profile Cookie Prefix</strong> to match the prefix used by the Signals SDK.</li>
+    <li>Enable the <strong>Send Device Profile</strong> option to ensure PingAccess includes the device profile data in its communications with PingOne Protect.</li>
+</ul>
+
+<h2>Benefits of Using Signals SDK with PingAccess</h2>
+<ul>
+    <li>Improved device profiling accuracy.</li>
+    <li>Better risk evaluations based on real-time device signals.</li>
+    <li>Enhanced security posture by detecting new or anomalous devices.</li>
+</ul>
+
+<h2>Further Reading</h2>
+<p>For detailed guidance on integrating the Signals SDK with PingAccess, refer to the 
+<a href="https://docs.pingidentity.com/pingone/threat_protection_using_pingone_protect/p1_protect_signals_sdk.html" target="_blank">
+PingOne Signals (Protect) SDK documentation</a>.
+</p>
