@@ -1,157 +1,178 @@
-
-<h1>Device Profiling in PingAccess Risk Policy</h1>
+<h1>PingFederate Agentless Adapter Communication with Consent Application</h1>
 
 <h2>Overview</h2>
-<p>Device profiling is a crucial aspect of PingAccess risk policies, enabling the system to gather detailed information about the devices accessing your applications. This enhances the accuracy of risk evaluations and helps identify anomalies or potential security threats.</p>
+<p>This document explains the interaction between PingFederate and the Consent Application using the Agentless Adapter. 
+It covers the sequence of authentication and consent approval and highlights the available authentication methods for API communication.</p>
 
-<h2>Enabling Device Profiling in PingAccess Risk Policies</h2>
+<hr>
 
-<h3>Step 1: Access the PingAccess Administrative Console</h3>
+<h2>Authentication Methods</h2>
+<p>PingFederate Agentless Adapter supports <strong>three authentication methods</strong> for securing the <em>Attribute Pickup</em> and <em>Attribute Dropoff</em> API calls:</p>
+
 <ul>
-    <li>Navigate to the console and select <strong>Access</strong> > <strong>Risk Policies</strong>.</li>
-</ul>
-
-<h3>Step 2: Add or Edit a Risk Policy</h3>
-<ul>
-    <li>To create a new policy, click <strong>+Add Risk Policy</strong>.</li>
-    <li>To modify an existing policy, click the <strong>Expand</strong> icon next to the desired policy and then click the <strong>Pencil</strong> icon on the <strong>Properties</strong> tab.</li>
-</ul>
-
-<h3>Step 3: Configure Device Profiling</h3>
-<ul>
-    <li>In the <strong>Device Profiling Method</strong> field, select one of the following options:</li>
-    <ul>
-        <li><strong>OFF</strong>: Disables device profiling.</li>
-        <li><strong>Captured by PingAccess</strong>: PingAccess collects device profiles during the access request.</li>
-        <li><strong>Captured by a Previous Adapter</strong>: Device profiling is handled earlier in the authentication flow by another component.</li>
-    </ul>
-</ul>
-
-<h3>Step 4: Save the Policy</h3>
-<ul>
-    <li>After configuring the desired settings, click <strong>Save</strong> to apply the changes.</li>
-</ul>
-
-<h2>Important Considerations</h2>
-
-<h3>Predictor Compatibility</h3>
-<p>If device profiling is not enabled, avoid including device-related predictors in your PingOne risk policy, as they rely on device data to function correctly. These predictors include:</p>
-<ul>
-    <li>Anonymous Network Detection</li>
-    <li>Geovelocity Anomaly</li>
-    <li>IP Reputation</li>
-    <li>IP Velocity</li>
-    <li>New Device</li>
-    <li>User Location Anomaly</li>
-</ul>
-<p>Ensure that your risk policy configuration aligns with the device profiling settings to maintain accurate risk assessments.</p>
-
-<h3>Cookie Size Consideration</h3>
-<p>Enabling device profiling adds device information to the user's browser as cookies, typically around 8192 bytes in size. Before enabling this feature, increase the <code>pa.default.maxHttpHeaderSize</code> property in the <code>&lt;PA_HOME&gt;/conf/run.properties</code> file to accommodate the additional data.</p>
-
-<h2>Additional Resources</h2>
-<p>For more detailed information, refer to the <a href="https://docs.pingidentity.com/pingaccess/latest/pingaccess_user_interface_reference_guide/pa_risk_policies_overview.html">PingAccess Risk Policies Overview</a>.</p>
-
-
-<h1>Customizing the Device Profiling Loading Page in PingAccess</h1>
-
-<p>When device profiling is enabled in PingAccess, users may see a loading page while their device information is collected. This page can be customized or optimized to enhance the user experience.</p>
-
-<h2>Customizing the Loading Page</h2>
-
-<p>PingAccess allows modifications to user-facing pages, including the device profiling loading page. Follow these steps to customize it:</p>
-
-<ol>
-    <li>
-        <strong>Locate the Template File:</strong>
+    <li><strong>HTTP Basic Authentication</strong> (IETF RFC 7617)
         <ul>
-            <li>Go to the PingAccess installation directory, typically <code>&lt;PA_HOME&gt;</code>.</li>
-            <li>Navigate to <code>conf/templates</code>.</li>
-            <li>Look for the template file related to the device profiling loading page.</li>
+            <li>Uses a Base64-encoded username and password.</li>
+            <li>Example:
+                <pre>Authorization: Basic dXNlcm5hbWU6cGFzc3dvcmQ=</pre>
+            </li>
         </ul>
     </li>
+    <li><strong>Certificate Authentication (Mutual TLS)</strong>
+        <ul>
+            <li>Requires the client (Consent Application) and server (PingFederate) to exchange certificates.</li>
+            <li>Uses trusted CA certificates to establish a secure connection.</li>
+        </ul>
+    </li>
+    <li><strong>Custom HTTP Header Variables</strong>
+        <ul>
+            <li>Uses <code>ping.uname</code> and <code>ping.pwd</code> headers for authentication.</li>
+            <li>Example:
+                <pre>
+ping.uname: myUser
+ping.pwd: myPassword
+                </pre>
+            </li>
+        </ul>
+    </li>
+</ul>
+
+<hr>
+
+<h2>Sequence Flow Explanation</h2>
+
+<h3>1. User Authentication via PingFederate</h3>
+<ul>
+    <li>The user initiates login via the TSP Application.</li>
+    <li>PingFederate handles OIDC login and validates credentials.</li>
+    <li>If authentication succeeds, PingFederate redirects the user to the Consent Application with a <strong>Reference ID (REF)</strong>.</li>
+    <li>If authentication fails, an error message is displayed.</li>
+</ul>
+
+<h3>2. Attribute Pickup</h3>
+<ul>
+    <li>The Consent Application makes a <strong>GET</strong> request to PingFederate to retrieve user attributes using the provided REF.</li>
+    <li><strong>Authentication options:</strong>
+        <ul>
+            <li>HTTP Basic Authentication</li>
+            <li>Certificate Authentication (Mutual TLS)</li>
+            <li>Custom HTTP Headers (<code>ping.uname</code> & <code>ping.pwd</code>)</li>
+        </ul>
+    </li>
+    <li>PingFederate responds with user attributes in JSON format.</li>
+</ul>
+
+<h3>3. Attribute Dropoff</h3>
+<ul>
+    <li>The Consent Application sends a <strong>POST</strong> request to PingFederate to drop off user attributes and update the REF.</li>
+    <li><strong>Authentication options:</strong>
+        <ul>
+            <li>HTTP Basic Authentication</li>
+            <li>Certificate Authentication (Mutual TLS)</li>
+            <li>Custom HTTP Headers (<code>ping.uname</code> & <code>ping.pwd</code>)</li>
+        </ul>
+    </li>
+    <li>PingFederate returns a new REF.</li>
+</ul>
+
+<h3>4. User Redirection to TSP Application</h3>
+<ul>
+    <li>The Consent Application redirects the user back to PingFederate with the new REF.</li>
+    <li>PingFederate then redirects the user to the original TSP Application.</li>
+</ul>
+
+<hr>
+
+<h2>Authentication Methods Summary</h2>
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Call Type</th>
+            <th>Authentication Options Available</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Attribute Pickup</strong></td>
+            <td>HTTP Basic Authentication, Mutual TLS, Custom HTTP Headers (ping.uname & ping.pwd)</td>
+        </tr>
+        <tr>
+            <td><strong>Attribute Dropoff</strong></td>
+            <td>HTTP Basic Authentication, Mutual TLS, Custom HTTP Headers (ping.uname & ping.pwd)</td>
+        </tr>
+    </tbody>
+</table>
+
+<hr>
+
+<h2>Key Considerations</h2>
+<ul>
+    <li>Ensure that the chosen authentication method aligns with the organization's security policies.</li>
+    <li>Mutual TLS requires additional setup for certificate exchange and trust management.</li>
+    <li>Custom HTTP headers can be used if Basic Authentication is not preferred.</li>
+</ul>
+
+
+
+@startuml
+skinparam backgroundColor White
+skinparam sequenceArrowColor Black
+skinparam participant {
+    BackgroundColor<<PingFederate>> LightYellow
+    BackgroundColor<<ConsentApplication>> LightPink
+    BackgroundColor<<TSPApplication>> LightGreen
+    BackgroundColor<<User>> LightBlue
+    BorderColor Black
+    FontColor Black
+}
+
+actor User #LightBlue
+participant TSPApplication #LightGreen
+participant PingFederate <<PingFederate>> #LightYellow
+participant ConsentApplication <<ConsentApplication>> #LightPink
+
+== User Login Process ==
+User -> TSPApplication: Logs in with credentials (POST)
+TSPApplication -> PingFederate: OIDC login request (Redirect)
+PingFederate -> PingFederate: Validates user credentials
+
+alt Authentication Successful
+    PingFederate -> ConsentApplication: Redirects with REF (Redirect)
+else Authentication Failed
+    PingFederate -> User: Displays Error Page
+end
+
+== Attribute Pickup Process ==
+ConsentApplication -> PingFederate: Attribute Pickup Request (GET with REF)
+alt Authentication Required
+    note right of PingFederate: Authentication Options:
+    * HTTP Basic Authentication
+    * Mutual TLS (mTLS)
+    * Custom HTTP Headers
+end
+PingFederate --> ConsentApplication: Returns User Attributes (Response)
+
+== Consent Decision ==
+alt Consent Already Exists
+    ConsentApplication -> PingFederate: Attribute Dropoff (POST)
+    PingFederate --> ConsentApplication: Returns New REF (Response)
+    ConsentApplication -> PingFederate: Redirects back with REF (Redirect)
+    PingFederate -> TSPApplication: Redirects user to TSP Application
+else Consent Not Exists
+    ConsentApplication -> User: Display Consent UI (User Interaction)
+    User -> ConsentApplication: Submits Consent Decision (POST)
     
-    <li>
-        <strong>Edit the Template:</strong>
-        <ul>
-            <li>Open the template file in a text editor.</li>
-            <li>Modify the HTML and Velocity Template Language (VTL) constructs.</li>
-            <li>Apply branding elements such as logos, colors, and customized messages.</li>
-        </ul>
-    </li>
+    alt User Agrees
+        ConsentApplication -> PingFederate: Attribute Dropoff (POST)
+        PingFederate --> ConsentApplication: Returns New REF (Response)
+        ConsentApplication -> PingFederate: Redirects back with REF (Redirect)
+        PingFederate -> TSPApplication: Redirects user to TSP Application
+    else User Denies
+        ConsentApplication -> PingFederate: Attribute Dropoff (POST)
+        PingFederate --> ConsentApplication: Returns New REF (Response)
+        ConsentApplication -> PingFederate: Redirects back with REF (Redirect)
+        PingFederate -> User: Displays Error Page
+    end
+end
 
-    <li>
-        <strong>Update Assets:</strong>
-        <ul>
-            <li>If using images or stylesheets, place them in the appropriate directories:</li>
-            <ul>
-                <li><strong>Images:</strong> <code>&lt;PA_HOME&gt;/conf/static/pa/assets/images</code></li>
-                <li><strong>Stylesheets:</strong> <code>&lt;PA_HOME&gt;/conf/static/pa/assets/css</code></li>
-            </ul>
-            <li>Ensure the template file references the correct asset paths.</li>
-        </ul>
-    </li>
-
-    <li>
-        <strong>Save and Test:</strong>
-        <ul>
-            <li>After making changes, save the file.</li>
-            <li>Test the device profiling process to verify your customizations.</li>
-        </ul>
-    </li>
-</ol>
-
-<p>For detailed guidance, refer to the <a href="https://docs.pingidentity.com/pingaccess/latest/configuring_and_customizing_pingaccess/pa_user_facing_page_customization_ref.html">PingAccess User-Facing Page Customization Reference</a>.</p>
-
-<h2>Suppressing the Loading Page</h2>
-
-<p>While customization is supported, removing the loading page entirely is not recommended, as it ensures complete device information collection. However, the following optimizations can reduce its impact:</p>
-
-<ul>
-    <li><strong>Asynchronous Data Collection:</strong> Implement device profiling earlier in the authentication flow (e.g., on the login page) to collect data in the background.</li>
-    <li><strong>Optimize Loading Time:</strong> Ensure the profiling script and associated resources are optimized to reduce the duration of the loading page.</li>
-</ul>
-
-<p>By effectively customizing or optimizing the loading page, you can enhance the user experience while maintaining security and risk assessment accuracy.</p>
-
-
-
-<h1>Using Signals SDK for PingAccess Risk Policy</h1>
-
-<p>Yes, you can utilize the <strong>PingOne Signals (Protect) SDK</strong> to enhance device profiling within PingAccess risk policies. This integration allows PingAccess to collect detailed device information, which is then used by PingOne Protect to perform comprehensive risk evaluations.</p>
-
-<h2>Implementing the Signals SDK with PingAccess</h2>
-
-<h3>1. Configure Device Profiling in PingAccess</h3>
-<ul>
-    <li>Access the <strong>PingAccess administrative console</strong>.</li>
-    <li>Navigate to <strong>Access > Risk Policies</strong>.</li>
-    <li>Add a new risk policy or edit an existing one.</li>
-    <li>In the <strong>Device Profiling Method</strong> field, select <strong>Captured by Frontend Application</strong>.</li>
-</ul>
-
-<h3>2. Integrate the Signals SDK into Your Application</h3>
-<ul>
-    <li>Incorporate the <strong>Signals SDK</strong> into your application's frontend pages.</li>
-    <li>The SDK will collect device-related data and store it in cookies.</li>
-    <li>Ensure these cookies are properly configured to be accessible by PingAccess.</li>
-</ul>
-
-<h3>3. Adjust PingAccess Settings</h3>
-<ul>
-    <li>In the risk policy configuration, set the <strong>Device Profile Cookie Prefix</strong> to match the prefix used by the Signals SDK.</li>
-    <li>Enable the <strong>Send Device Profile</strong> option to ensure PingAccess includes the device profile data in its communications with PingOne Protect.</li>
-</ul>
-
-<h2>Benefits of Using Signals SDK with PingAccess</h2>
-<ul>
-    <li>Improved device profiling accuracy.</li>
-    <li>Better risk evaluations based on real-time device signals.</li>
-    <li>Enhanced security posture by detecting new or anomalous devices.</li>
-</ul>
-
-<h2>Further Reading</h2>
-<p>For detailed guidance on integrating the Signals SDK with PingAccess, refer to the 
-<a href="https://docs.pingidentity.com/pingone/threat_protection_using_pingone_protect/p1_protect_signals_sdk.html" target="_blank">
-PingOne Signals (Protect) SDK documentation</a>.
-</p>
+@enduml
