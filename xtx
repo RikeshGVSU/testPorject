@@ -1,228 +1,36 @@
-<h1>Detailed Documentation for ConsentApplication Flow</h1>
+Subject: Clarification on Missing pingone.protect.template.header in PingAccess Risk Policy
+Description of the Issue:
+We have PingAccess Risk Policy enabled for an application, and while logins are generally successful, we observe intermittent unsuccessful login attempts. Upon investigating the logs, we see the following error appearing multiple times:
 
-<hr/>
+vbnet
+Copy code
+com.pingidentity.pa.localization.LocalizedMessageResolverImpl - Unable to find message with key "pingone.protect.template.header"
+java.util.MissingResourceException: Can't find resource for bundle java.util.PropertyResourceBundle, key pingone.protect.template.header
+From previous versions of PingAccess, we noticed that these keys were present in pa-messages.properties but without any assigned value, such as:
 
-<h2>Overview</h2>
-<p>This document provides a step-by-step explanation of the ConsentApplication flow based on the provided sequence diagram. Each step includes details such as the type of call (GET, POST, Redirect), payload, query parameters, expected responses, and any pending decisions based on the meeting discussions.</p>
+pgsql
+Copy code
+pingone.protect.template.title=
+pingone.protect.template.header=
+However, in our current deployment, we do not see these keys at all in pa-messages.properties.
 
-<hr/>
-
-<h2>Steps in the Diagram</h2>
-
-<h3>1. Lender User Login</h3>
-<ul>
-  <li><strong>Action:</strong> LenderUser logs in to the TSPApplication.</li>
-  <li><strong>Call Type:</strong> POST</li>
-  <li><strong>Payload:</strong>
-    <pre>
-{
-  "username": "lender_username",
-  "password": "lender_password"
-}
-    </pre>
-  </li>
-  <li><strong>Response:</strong> TSPApplication authenticates the user and redirects to PingFederate for OIDC login.</li>
-</ul>
-
-<h3>2. PingFederate OIDC Authentication</h3>
-<ul>
-  <li><strong>Action:</strong> PingFederate handles OIDC login.</li>
-  <li><strong>Call Type:</strong> Redirect</li>
-  <li><strong>Query Parameters:</strong> N/A (Handled internally within PingFederate)</li>
-  <li><strong>Expected Behavior:</strong> PingFederate validates user credentials.</li>
-</ul>
-
-<h3>3. Check Lender-TSP Relationship</h3>
-<ul>
-  <li><strong>Action:</strong> PingFederate checks the relationship between the lender and the TSP.</li>
-  <li><strong>Call Type:</strong> GET</li>
-  <li><strong>Endpoint:</strong> PingFederate → PostgresDatabase</li>
-  <li><strong>Query Parameters:</strong>
-    <ul>
-      <li><code>lender_id</code>: Identifier for the lender.</li>
-      <li><code>tsp_id</code>: Identifier for the TSP.</li>
-    </ul>
-  </li>
-  <li><strong>Response:</strong>
-    <ul>
-      <li>If the relationship exists: Proceed to ConsentApplication with a reference (REF).</li>
-      <li>If the relationship does not exist: Display an access denied page.</li>
-    </ul>
-  </li>
-</ul>
-
-<hr/>
-
-<h3>Relationship Exists</h3>
-
-<h4>4. Attribute Pickup</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication retrieves user attributes from PingFederate using the REF.</li>
-  <li><strong>Call Type:</strong> GET</li>
-  <li><strong>Endpoint:</strong> PingFederate Agentless Attribute Pickup</li>
-  <li><strong>Query Parameters:</strong>
-    <ul>
-      <li><code>REF</code>: Reference ID from PingFederate.</li>
-    </ul>
-  </li>
-  <li><strong>Response:</strong>
-    <pre>
-{
-  "user_id": "test09",
-  "attributes": {
-    "email": "user@example.com",
-    "name": "John Doe"
-  }
-}
-    </pre>
-  </li>
-</ul>
-
-<h4>5. Get System IDs</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication queries the CIAM_API for system IDs associated with the user.</li>
-  <li><strong>Call Type:</strong> GET</li>
-  <li><strong>Endpoint:</strong> CIAM_API</li>
-  <li><strong>Query Parameters:</strong>
-    <ul>
-      <li><code>user_id</code>: Identifier for the user.</li>
-    </ul>
-  </li>
-  <li><strong>Response:</strong> List of system IDs (details not documented).</li>
-</ul>
-
-<h4>6. Read Consent</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication checks if consent already exists in the datastore.</li>
-  <li><strong>Call Type:</strong> GET</li>
-  <li><strong>Endpoint:</strong> /consent/v1/consents</li>
-  <li><strong>Query Parameters:</strong>
-    <ul>
-      <li><code>actor</code>: User identifier (e.g., <code>test09</code>).</li>
-      <li><code>subject</code>: System identifier (e.g., <code>bbSystemId23</code>).</li>
-      <li><code>definition</code>: Consent definition ID (e.g., <code>consent3</code>).</li>
-    </ul>
-  </li>
-  <li><strong>Response:</strong>
-    <ul>
-      <li>If consent exists:
-        <pre>
-{
-  "_embedded": {
-    "consents": [
-      {
-        "id": "0a4d1471-1806-46a1-afa2-b8265c94d9e7",
-        "status": "accepted",
-        "subject": "bbSystemId23",
-        "actor": "test09",
-        "createdDate": "2025-01-28T15:48:31.619Z"
-      }
-    ]
-  }
-}
-        </pre>
-      </li>
-      <li>If consent does not exist:
-        <pre>
-{
-  "count": 0,
-  "size": 0
-}
-        </pre>
-      </li>
-    </ul>
-  </li>
-</ul>
-
-<h4>7. Attribute Dropoff (If Consent Exists)</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication performs an attribute dropoff with PingFederate.</li>
-  <li><strong>Call Type:</strong> POST</li>
-  <li><strong>Endpoint:</strong> PingFederate Agentless Attribute Dropoff</li>
-  <li><strong>Payload:</strong>
-    <pre>
-{
-  "user_id": "test09",
-  "status": "consent exists"
-}
-    </pre>
-  </li>
-  <li><strong>Response:</strong> New REF is returned by PingFederate:
-    <pre>
-{
-  "REF": "new_reference_id"
-}
-    </pre>
-  </li>
-  <li><strong>Redirect:</strong> The user is redirected back to the TSPApplication with the new REF.</li>
-</ul>
-
-<hr/>
-
-<h3>Consent Does Not Exist</h3>
-
-<h4>8. Display UI Page</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication displays the consent UI to the user.</li>
-  <li><strong>Behavior:</strong> User views the consent text, selects system IDs, and submits a response (agree/deny).</li>
-</ul>
-
-<h4>9. Save Consent (User Agrees)</h4>
-<ul>
-  <li><strong>Action:</strong> ConsentApplication creates a new consent entry in the datastore.</li>
-  <li><strong>Call Type:</strong> POST</li>
-  <li><strong>Endpoint:</strong> /consent/v1/consents</li>
-  <li><strong>Payload:</strong>
-    <pre>
-{
-  "status": "accepted",
-  "subject": "bbSystemId23",
-  "actor": "test09",
-  "audience": "FMSSO-FANNIEMAE",
-  "definition": {
-    "id": "consent3",
-    "version": "1.4",
-    "locale": "en-US"
-  },
-  "dataText": "consent3",
-  "purposeText": "consent3"
-}
-    </pre>
-  </li>
-  <li><strong>Response:</strong>
-    <pre>
-{
-  "id": "ffa1290d-6f30-4777-a464-fe3f1468351c",
-  "status": "accepted",
-  "createdDate": "2025-02-07T19:48:31.594Z"
-}
-    </pre>
-  </li>
-  <li><strong>Follow-Up:</strong> Perform Attribute Dropoff and redirect to TSPApplication.</li>
-</ul>
-
-<h4>10. User Denies Consent</h4>
-<ul>
-  <li><strong>Action:</strong> Display deny message page and redirect back to PingFederate.</li>
-  <li><strong>Call Type:</strong> POST (for Attribute Dropoff)</li>
-  <li><strong>Payload:</strong>
-    <pre>
-{
-  "user_id": "test09",
-  "status": "denied"
-}
-    </pre>
-  </li>
-  <li><strong>Response:</strong> New REF returned by PingFederate, user redirected back with denial status.</li>
-</ul>
-
-<hr/>
-
-<h2>Pending Decisions Based on Meeting Notes</h2>
-<ul>
-  <li>Confirm where the error page should be displayed (PingFederate vs. ConsentApplication).</li>
-  <li>Clarify whether session termination occurs at PingFederate or ConsentApplication level after denial.</li>
-  <li>Evaluate transitioning from Postgres to DynamoDB for future scalability.</li>
-  <li>Finalize whether to use basic auth, token-based auth, or other mechanisms for securing API calls.</li>
-  <li>Define the payload structure to communicate denial back to PingFederate accurately.</li>
-</ul>
+Questions for Ping Support:
+Is the pingone.protect.template.header key required in pa-messages.properties even if it has no value?
+Could the missing key cause risk evaluation interruptions or failed login attempts?
+What specific functionality does this key control? Is it related to the UI loading page for device profiling?
+If this key is required, what value should be assigned to it?
+Are there any recent updates or best practices regarding the handling of localization keys in PingAccess for Risk Evaluation?
+If we manually add the key with an empty value (pingone.protect.template.header=), will this resolve the error, or do we need to provide a valid value?
+Additional Information:
+PingAccess Version: [Your Version]
+PingOne Protect Integration: Enabled for risk evaluation
+Risk Policy Location: Configured in PingAccess, not PingFederate
+Device Profiling Method: Captured by PingAccess
+Intermittent Issue: The error appears multiple times for some login attempts, leading to sporadic login failures
+Observed in Logs: Appears in pingaccess-engine logs
+Steps Taken So Far:
+Checked pa-messages.properties (found that the key is missing)
+Compared with previous versions where the key existed without a value
+Verified that login failures align with the occurrence of this error
+Confirmed that some logins are successful despite the error, but others fail intermittently
+Could you please clarify whether this key is mandatory, whether it affects risk evaluation, and what the correct approach would be to resolve this?
