@@ -1,36 +1,44 @@
-Subject: Clarification on Missing pingone.protect.template.header in PingAccess Risk Policy
-Description of the Issue:
-We have PingAccess Risk Policy enabled for an application, and while logins are generally successful, we observe intermittent unsuccessful login attempts. Upon investigating the logs, we see the following error appearing multiple times:
+This feature focuses on performing comprehensive testing, analysis, and configuration of PingOne Risk policies within the PingAccess AUTHGW environment. The goal is to evaluate various risk predictors, understand their behavior and scoring under different scenarios, and determine optimal threshold values for Medium and High risk classifications.
 
-vbnet
-Copy code
-com.pingidentity.pa.localization.LocalizedMessageResolverImpl - Unable to find message with key "pingone.protect.template.header"
-java.util.MissingResourceException: Can't find resource for bundle java.util.PropertyResourceBundle, key pingone.protect.template.header
-From previous versions of PingAccess, we noticed that these keys were present in pa-messages.properties but without any assigned value, such as:
+This initiative includes:
 
-pgsql
-Copy code
-pingone.protect.template.title=
-pingone.protect.template.header=
-However, in our current deployment, we do not see these keys at all in pa-messages.properties.
+Conducting extensive test cases to evaluate how each predictor behaves.
 
-Questions for Ping Support:
-Is the pingone.protect.template.header key required in pa-messages.properties even if it has no value?
-Could the missing key cause risk evaluation interruptions or failed login attempts?
-What specific functionality does this key control? Is it related to the UI loading page for device profiling?
-If this key is required, what value should be assigned to it?
-Are there any recent updates or best practices regarding the handling of localization keys in PingAccess for Risk Evaluation?
-If we manually add the key with an empty value (pingone.protect.template.header=), will this resolve the error, or do we need to provide a valid value?
-Additional Information:
-PingAccess Version: [Your Version]
-PingOne Protect Integration: Enabled for risk evaluation
-Risk Policy Location: Configured in PingAccess, not PingFederate
-Device Profiling Method: Captured by PingAccess
-Intermittent Issue: The error appears multiple times for some login attempts, leading to sporadic login failures
-Observed in Logs: Appears in pingaccess-engine logs
-Steps Taken So Far:
-Checked pa-messages.properties (found that the key is missing)
-Compared with previous versions where the key existed without a value
-Verified that login failures align with the occurrence of this error
-Confirmed that some logins are successful despite the error, but others fail intermittently
-Could you please clarify whether this key is mandatory, whether it affects risk evaluation, and what the correct approach would be to resolve this?
+Capturing test results and logs from Splunk and PingOne audit logs.
+
+Analyzing real-world and simulated scenarios using tools like WonderProxy and device emulators.
+
+Evaluating the impact of predictors.
+
+Fine-tuning the Risk Policy configuration in PingOne by setting appropriate scores for Medium and High per predictor.
+
+Implementing the finalized risk policy in Test, Acceptance, and Production environments for all PingAccess AUTHGW web applications in monitoring mode initially (no enforcement).
+
+Documenting all test results, configurations, and recommendations.
+
+Acceptance Criteria:
+✅ All relevant PingOne risk predictors are evaluated with various scenarios (internal/external IPs, new/known devices, proxy networks, location changes, velocity thresholds, etc.).
+
+✅ Detailed test results and observations documentation are created (organized by predictor, score outcome, and reasoning).
+
+✅ Defined and agreed thresholds for Medium and High risk for each predictor, based on data analysis.
+
+✅ A finalized Risk Policy configuration is defined and validated in one lower environment.
+
+✅ The same Risk Policy is rolled out in Test, ACPT, and PROD environments for all AUTHGW web applications, initially in monitoring mode.
+
+✅ Optional: Report or dashboard updates are made in Splunk to track ongoing risk scores and patterns.
+
+✅ All documentation is shared with stakeholders and stored in Confluence or a designated collaboration space.
+
+Benefits:
+
+Helps improve app security by detecting risky behavior.
+
+Gives better visibility into login behavior using real test data.
+
+Avoids false positives and unnecessary MFA prompts.
+
+Prepares the policy for future enforcement when needed.
+
+Enables PingRisk across all AUTHGW apps in a clean and tested way.
