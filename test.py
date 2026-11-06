@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-import httpx
+import httpx2
 
 from mcp.client.auth import (
     AuthorizationCodeResult,
@@ -301,9 +301,9 @@ async def main():
         print(MCP_URL)
         print()
 
-        async with httpx.AsyncClient(
+        async with httpx2.AsyncClient(
             auth=oauth_auth,
-            timeout=httpx.Timeout(
+            timeout=httpx2.Timeout(
                 30.0,
                 read=300.0,
             ),
